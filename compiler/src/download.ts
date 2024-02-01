@@ -1,4 +1,4 @@
-const downloadAuto = (filename: string, text: string) => {
+const download = (filename: string, text: string) => {
   if (!document) return;
   const file = document.createElement('a');
   file.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(text));
@@ -13,8 +13,6 @@ const downloadAuto = (filename: string, text: string) => {
   document.body.appendChild(document.createElement('br'));
 
   file.click();
-
-  // document.body.removeChild(element);
 };
 
-export default downloadAuto;
+export default download;
