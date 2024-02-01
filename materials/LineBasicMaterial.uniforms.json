@@ -1,0 +1,134 @@
+{
+  "diffuse": {
+    "value": 16777215
+  },
+  "opacity": {
+    "value": 1
+  },
+  "map": {
+    "value": null
+  },
+  "mapTransform": {
+    "value": {
+      "elements": [
+        1,
+        0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0,
+        1
+      ]
+    }
+  },
+  "alphaMap": {
+    "value": null
+  },
+  "alphaMapTransform": {
+    "value": {
+      "elements": [
+        1,
+        0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0,
+        1
+      ]
+    }
+  },
+  "alphaTest": {
+    "value": 0
+  },
+  "specularMap": {
+    "value": null
+  },
+  "specularMapTransform": {
+    "value": {
+      "elements": [
+        1,
+        0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0,
+        1
+      ]
+    }
+  },
+  "envMap": {
+    "value": null
+  },
+  "flipEnvMap": {
+    "value": -1
+  },
+  "reflectivity": {
+    "value": 1
+  },
+  "ior": {
+    "value": 1.5
+  },
+  "refractionRatio": {
+    "value": 0.98
+  },
+  "aoMap": {
+    "value": null
+  },
+  "aoMapIntensity": {
+    "value": 1
+  },
+  "aoMapTransform": {
+    "value": {
+      "elements": [
+        1,
+        0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0,
+        1
+      ]
+    }
+  },
+  "lightMap": {
+    "value": null
+  },
+  "lightMapIntensity": {
+    "value": 1
+  },
+  "lightMapTransform": {
+    "value": {
+      "elements": [
+        1,
+        0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0,
+        1
+      ]
+    }
+  },
+  "fogDensity": {
+    "value": 0.00025
+  },
+  "fogNear": {
+    "value": 1
+  },
+  "fogFar": {
+    "value": 2000
+  },
+  "fogColor": {
+    "value": 16777215
+  }
+}

@@ -1,0 +1,71 @@
+{
+  "diffuse": {
+    "value": 16777215
+  },
+  "opacity": {
+    "value": 1
+  },
+  "map": {
+    "value": null
+  },
+  "mapTransform": {
+    "value": {
+      "elements": [
+        1,
+        0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0,
+        1
+      ]
+    }
+  },
+  "alphaMap": {
+    "value": null
+  },
+  "alphaMapTransform": {
+    "value": {
+      "elements": [
+        1,
+        0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0,
+        1
+      ]
+    }
+  },
+  "alphaTest": {
+    "value": 0
+  },
+  "displacementMap": {
+    "value": null
+  },
+  "displacementMapTransform": {
+    "value": {
+      "elements": [
+        1,
+        0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0,
+        1
+      ]
+    }
+  },
+  "displacementScale": {
+    "value": 1
+  },
+  "displacementBias": {
+    "value": 0
+  }
+}
