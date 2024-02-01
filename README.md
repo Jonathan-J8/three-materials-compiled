@@ -1,7 +1,7 @@
 # three-materials-compiled
 
 Are you tired of constantly searching for the meanings of different chunks in three.js shaders?
-Here is the materials list how provid the compliled shaders, pre-compiled shaders and the shaders uniforms.
+Here is the materials list how provid the compliled shaders, pre-compiled shaders and the materials uniforms.
 
 [Materials](./materials/):
 
