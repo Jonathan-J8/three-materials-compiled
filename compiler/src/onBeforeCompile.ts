@@ -44,8 +44,8 @@ const onBeforeCompile: Material['onBeforeCompile'] = (shader) => {
   const { shaderType, uniforms } = shader;
   let { fragmentShader, vertexShader } = shader;
 
-  download(`${shaderType}.frag.pre.compiled.glsl`, fragmentShader);
-  download(`${shaderType}.vert.pre.compiled.glsl`, vertexShader);
+  download(`${shaderType}.frag.glsl`, fragmentShader);
+  download(`${shaderType}.vert.glsl`, vertexShader);
   download(`${shaderType}.uniforms.json`, JSON.stringify(uniforms, undefined, 2));
 
   chunks.forEach((key) => {
