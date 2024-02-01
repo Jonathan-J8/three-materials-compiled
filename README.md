@@ -84,7 +84,7 @@ Full links to originals chunks is provided in the compiled version of the shader
 
 ## Scripts
 
-If you need to recompile the related codes from materials, follow these steps:
+If you need to recompile the materials, follow those steps:
 
 ```bash
 cd ./compiler
@@ -93,4 +93,4 @@ npm start
 ```
 
 Caution: It will automatically download all the shader codes for you in your default download folder.  
-If you need to modify the source code, navigate to [./compiler/src](./compiler/src/) as [./compiler/src/main.ts](./compiler/src/main.ts) is the entry point.
+If you need to modify the source code, navigate to [./compiler/src](./compiler/src/) as [main.ts](./compiler/src/main.ts) is the entry point.
