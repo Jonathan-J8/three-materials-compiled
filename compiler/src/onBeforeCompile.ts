@@ -3,7 +3,7 @@ import download from './download';
 
 const chunks = Object.keys(ShaderChunk);
 
-const chunksExluded = [
+const chunksExcluded = [
   'background_vert',
   'background_frag',
   'backgroundCube_vert',
@@ -49,7 +49,7 @@ const onBeforeCompile: Material['onBeforeCompile'] = (shader) => {
   download(`${shaderType}.uniforms.json`, JSON.stringify(uniforms, undefined, 2));
 
   chunks.forEach((key) => {
-    if (chunksExluded.includes(key)) return;
+    if (chunksExcluded.includes(key)) return;
 
     const from = `#include <${key}>`;
     const to = `
