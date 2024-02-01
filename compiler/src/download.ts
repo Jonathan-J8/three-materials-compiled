@@ -6,7 +6,7 @@ const download = (filename: string, text: string) => {
   file.innerText = filename;
 
   const info = document.createElement('span');
-  info.innerText = ' - auto downloaded';
+  info.innerText = ' - downloaded';
 
   document.body.appendChild(file);
   document.body.appendChild(info);
