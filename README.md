@@ -4,11 +4,11 @@ Are you tired of constantly searching for the meanings of different chunks in th
 
 In [./materials](./materials/), you'll find all the codes organized as follows:
 
-- material.frag.compiled.glsl
-- material.vert.compiled.glsl
-- material.frag.pre.compiled.glsl
-- material.vert.pre.compiled.glsl
-- material.uniforms.glsl
+- materialName.frag.compiled.glsl
+- materialName.frag.pre.compiled.glsl
+- materialName.uniforms.glsl
+- materialName.vert.compiled.glsl
+- materialName.vert.pre.compiled.glsl
 
 ## Scripts
 
