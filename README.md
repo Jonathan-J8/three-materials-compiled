@@ -93,4 +93,4 @@ npm start
 ```
 
 Caution: It will automatically download all the shader codes for you in your default download folder.  
-If you need to modify the source code, navigate to [./scripts/src](./scripts/src/) as [./scripts/src/main.ts](./scripts/src/main.ts) is the entry point.
+If you need to modify the source code, navigate to [./compiler/src](./compiler/src/) as [./compiler/src/main.ts](./compiler/src/main.ts) is the entry point.
