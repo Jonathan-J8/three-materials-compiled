@@ -4,6 +4,8 @@ Are you tired of constantly searching the meanings of differents chunks in three
 Here is the list of most materials. It provid the compliled shaders, pre-compiled shaders and the materials uniforms.
 Full links to originals chunks is provided in the compiled version of the shaders.
 
+If you want to see thems in a more interactive way, here is another project who list them : [ycw.github.io/three-shaderlib-skim/dist/#/latest](https://ycw.github.io/three-shaderlib-skim/dist/#/latest)
+
 [Materials](./materials/):
 
 - [LineBasicMaterial.frag.compiled.glsl](./materials/LineBasicMaterial.frag.compiled.glsl)
