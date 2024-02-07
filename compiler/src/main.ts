@@ -4,6 +4,7 @@ import {
   PerspectiveCamera,
   PlaneGeometry,
   Points,
+  RawShaderMaterial,
   Scene,
   Sprite,
   WebGLRenderer,
@@ -39,8 +40,8 @@ const renderer = new WebGLRenderer({ canvas });
 
 const meshes: Record<string, Mesh | Line | Points | Sprite> = {
   // Material,
-  // new RawShaderMaterial(),
-  // new MeshDistanceMaterial(),
+  // MeshDistanceMaterial,
+
   LineBasicMaterial: new Line(geometry, new LineBasicMaterial()),
   LineDashedMaterial: new Line(geometry, new LineDashedMaterial()),
   MeshBasicMaterial: new Mesh(geometry, new MeshBasicMaterial()),
@@ -53,6 +54,7 @@ const meshes: Record<string, Mesh | Line | Points | Sprite> = {
   MeshStandardMaterial: new Mesh(geometry, new MeshStandardMaterial()),
   MeshToonMaterial: new Mesh(geometry, new MeshToonMaterial()),
   PointsMaterial: new Points(geometry, new PointsMaterial()),
+  RawShaderMaterial: new Mesh(geometry, new RawShaderMaterial()),
   ShaderMaterial: new Mesh(geometry, new ShaderMaterial()),
   ShadowMaterial: new Mesh(geometry, new ShadowMaterial()),
   SpriteMaterial: new Sprite(new SpriteMaterial()),
