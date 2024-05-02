@@ -19,6 +19,7 @@ void main() {
 	#include <morphcolor_vertex>
 	#include <batching_vertex>
 	#include <beginnormal_vertex>
+	#include <morphinstance_vertex>
 	#include <morphnormal_vertex>
 	#include <skinbase_vertex>
 	#include <skinnormal_vertex>

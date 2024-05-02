@@ -1,6 +1,5 @@
 #version 300 es
 
-precision mediump sampler2DArray;
 #define attribute in
 #define varying out
 #define texture2D texture
@@ -9,19 +8,19 @@ precision highp float;
   precision highp sampler2D;
   precision highp samplerCube;
   precision highp sampler3D;
-    precision highp sampler2DArray;
-    precision highp sampler2DShadow;
-    precision highp samplerCubeShadow;
-    precision highp sampler2DArrayShadow;
-    precision highp isampler2D;
-    precision highp isampler3D;
-    precision highp isamplerCube;
-    precision highp isampler2DArray;
-    precision highp usampler2D;
-    precision highp usampler3D;
-    precision highp usamplerCube;
-    precision highp usampler2DArray;
-    
+  precision highp sampler2DArray;
+  precision highp sampler2DShadow;
+  precision highp samplerCubeShadow;
+  precision highp sampler2DArrayShadow;
+  precision highp isampler2D;
+  precision highp isampler3D;
+  precision highp isamplerCube;
+  precision highp isampler2DArray;
+  precision highp usampler2D;
+  precision highp usampler3D;
+  precision highp usamplerCube;
+  precision highp usampler2DArray;
+  
 #define HIGH_PRECISION
 #define SHADER_TYPE MeshBasicMaterial
 #define SHADER_NAME 
@@ -37,6 +36,9 @@ uniform bool isOrthographic;
 #endif
 #ifdef USE_INSTANCING_COLOR
   attribute vec3 instanceColor;
+#endif
+#ifdef USE_INSTANCING_MORPH
+  uniform sampler2D morphTexture;
 #endif
 attribute vec3 position;
 attribute vec3 normal;
@@ -316,9 +318,13 @@ float F_Schlick( const in float f0, const in float f90, const in float dotVH ) {
 
 // start <morphtarget_pars_vertex> https://github.com/mrdoob/three.js/blob/master/src/renderers/shaders/ShaderChunk/morphtarget_pars_vertex.glsl.js
 #ifdef USE_MORPHTARGETS
-  uniform float morphTargetBaseInfluence;
+  #ifndef USE_INSTANCING_MORPH
+    uniform float morphTargetBaseInfluence;
+  #endif
   #ifdef MORPHTARGETS_TEXTURE
-    uniform float morphTargetInfluences[ MORPHTARGETS_COUNT ];
+    #ifndef USE_INSTANCING_MORPH
+      uniform float morphTargetInfluences[ MORPHTARGETS_COUNT ];
+    #endif
     uniform sampler2DArray morphTargetsTexture;
     uniform ivec2 morphTargetsTextureSize;
     vec4 getMorph( const in int vertexIndex, const in int morphTargetIndex, const in int offset ) {
@@ -361,12 +367,8 @@ float F_Schlick( const in float f0, const in float f90, const in float dotVH ) {
 
 // start <logdepthbuf_pars_vertex> https://github.com/mrdoob/three.js/blob/master/src/renderers/shaders/ShaderChunk/logdepthbuf_pars_vertex.glsl.js
 #ifdef USE_LOGDEPTHBUF
-  #ifdef USE_LOGDEPTHBUF_EXT
-    varying float vFragDepth;
-    varying float vIsPerspective;
-  #else
-    uniform float logDepthBufFC;
-  #endif
+  varying float vFragDepth;
+  varying float vIsPerspective;
 #endif
 // end <logdepthbuf_pars_vertex>
 
@@ -468,6 +470,17 @@ void main() {
   vColor.xyz *= instanceColor.xyz;
 #endif
 // end <color_vertex>
+
+  
+// start <morphinstance_vertex> https://github.com/mrdoob/three.js/blob/master/src/renderers/shaders/ShaderChunk/morphinstance_vertex.glsl.js
+#ifdef USE_INSTANCING_MORPH
+  float morphTargetInfluences[MORPHTARGETS_COUNT];
+  float morphTargetBaseInfluence = texelFetch( morphTexture, ivec2( 0, gl_InstanceID ), 0 ).r;
+  for ( int i = 0; i < MORPHTARGETS_COUNT; i ++ ) {
+    morphTargetInfluences[i] =  texelFetch( morphTexture, ivec2( i + 1, gl_InstanceID ), 0 ).r;
+  }
+#endif
+// end <morphinstance_vertex>
 
   
 // start <morphcolor_vertex> https://github.com/mrdoob/three.js/blob/master/src/renderers/shaders/ShaderChunk/morphcolor_vertex.glsl.js
@@ -637,15 +650,8 @@ gl_Position = projectionMatrix * mvPosition;
   
 // start <logdepthbuf_vertex> https://github.com/mrdoob/three.js/blob/master/src/renderers/shaders/ShaderChunk/logdepthbuf_vertex.glsl.js
 #ifdef USE_LOGDEPTHBUF
-  #ifdef USE_LOGDEPTHBUF_EXT
-    vFragDepth = 1.0 + gl_Position.w;
-    vIsPerspective = float( isPerspectiveMatrix( projectionMatrix ) );
-  #else
-    if ( isPerspectiveMatrix( projectionMatrix ) ) {
-      gl_Position.z = log2( max( EPSILON, gl_Position.w + 1.0 ) ) * logDepthBufFC - 1.0;
-      gl_Position.z *= gl_Position.w;
-    }
-  #endif
+  vFragDepth = 1.0 + gl_Position.w;
+  vIsPerspective = float( isPerspectiveMatrix( projectionMatrix ) );
 #endif
 // end <logdepthbuf_vertex>
 

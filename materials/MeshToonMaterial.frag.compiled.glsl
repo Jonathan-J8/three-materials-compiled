@@ -1,5 +1,4 @@
 #version 300 es
-precision mediump sampler2DArray;
 #define varying in
 layout(location = 0) out highp vec4 pc_fragColor;
 #define gl_FragColor pc_fragColor
@@ -18,19 +17,19 @@ precision highp float;
   precision highp sampler2D;
   precision highp samplerCube;
   precision highp sampler3D;
-    precision highp sampler2DArray;
-    precision highp sampler2DShadow;
-    precision highp samplerCubeShadow;
-    precision highp sampler2DArrayShadow;
-    precision highp isampler2D;
-    precision highp isampler3D;
-    precision highp isamplerCube;
-    precision highp isampler2DArray;
-    precision highp usampler2D;
-    precision highp usampler3D;
-    precision highp usamplerCube;
-    precision highp usampler2DArray;
-    
+  precision highp sampler2DArray;
+  precision highp sampler2DShadow;
+  precision highp samplerCubeShadow;
+  precision highp sampler2DArrayShadow;
+  precision highp isampler2D;
+  precision highp isampler3D;
+  precision highp isamplerCube;
+  precision highp isampler2DArray;
+  precision highp usampler2D;
+  precision highp usampler3D;
+  precision highp usamplerCube;
+  precision highp usampler2DArray;
+  
 #define HIGH_PRECISION
 #define SHADER_TYPE MeshToonMaterial
 #define SHADER_NAME 
@@ -747,26 +746,32 @@ void RE_IndirectDiffuse_Toon( const in vec3 irradiance, const in vec3 geometryPo
     return vec2( 0.125, 0.25 ) * planar + vec2( 0.375, 0.75 );
   }
   float getPointShadow( sampler2D shadowMap, vec2 shadowMapSize, float shadowBias, float shadowRadius, vec4 shadowCoord, float shadowCameraNear, float shadowCameraFar ) {
-    vec2 texelSize = vec2( 1.0 ) / ( shadowMapSize * vec2( 4.0, 2.0 ) );
+    float shadow = 1.0;
     vec3 lightToPosition = shadowCoord.xyz;
-    float dp = ( length( lightToPosition ) - shadowCameraNear ) / ( shadowCameraFar - shadowCameraNear );    dp += shadowBias;
-    vec3 bd3D = normalize( lightToPosition );
-    #if defined( SHADOWMAP_TYPE_PCF ) || defined( SHADOWMAP_TYPE_PCF_SOFT ) || defined( SHADOWMAP_TYPE_VSM )
-      vec2 offset = vec2( - 1, 1 ) * shadowRadius * texelSize.y;
-      return (
-        texture2DCompare( shadowMap, cubeToUV( bd3D + offset.xyy, texelSize.y ), dp ) +
-        texture2DCompare( shadowMap, cubeToUV( bd3D + offset.yyy, texelSize.y ), dp ) +
-        texture2DCompare( shadowMap, cubeToUV( bd3D + offset.xyx, texelSize.y ), dp ) +
-        texture2DCompare( shadowMap, cubeToUV( bd3D + offset.yyx, texelSize.y ), dp ) +
-        texture2DCompare( shadowMap, cubeToUV( bd3D, texelSize.y ), dp ) +
-        texture2DCompare( shadowMap, cubeToUV( bd3D + offset.xxy, texelSize.y ), dp ) +
-        texture2DCompare( shadowMap, cubeToUV( bd3D + offset.yxy, texelSize.y ), dp ) +
-        texture2DCompare( shadowMap, cubeToUV( bd3D + offset.xxx, texelSize.y ), dp ) +
-        texture2DCompare( shadowMap, cubeToUV( bd3D + offset.yxx, texelSize.y ), dp )
-      ) * ( 1.0 / 9.0 );
-    #else
-      return texture2DCompare( shadowMap, cubeToUV( bd3D, texelSize.y ), dp );
-    #endif
+    
+    float lightToPositionLength = length( lightToPosition );
+    if ( lightToPositionLength - shadowCameraFar <= 0.0 && lightToPositionLength - shadowCameraNear >= 0.0 ) {
+      float dp = ( lightToPositionLength - shadowCameraNear ) / ( shadowCameraFar - shadowCameraNear );      dp += shadowBias;
+      vec3 bd3D = normalize( lightToPosition );
+      vec2 texelSize = vec2( 1.0 ) / ( shadowMapSize * vec2( 4.0, 2.0 ) );
+      #if defined( SHADOWMAP_TYPE_PCF ) || defined( SHADOWMAP_TYPE_PCF_SOFT ) || defined( SHADOWMAP_TYPE_VSM )
+        vec2 offset = vec2( - 1, 1 ) * shadowRadius * texelSize.y;
+        shadow = (
+          texture2DCompare( shadowMap, cubeToUV( bd3D + offset.xyy, texelSize.y ), dp ) +
+          texture2DCompare( shadowMap, cubeToUV( bd3D + offset.yyy, texelSize.y ), dp ) +
+          texture2DCompare( shadowMap, cubeToUV( bd3D + offset.xyx, texelSize.y ), dp ) +
+          texture2DCompare( shadowMap, cubeToUV( bd3D + offset.yyx, texelSize.y ), dp ) +
+          texture2DCompare( shadowMap, cubeToUV( bd3D, texelSize.y ), dp ) +
+          texture2DCompare( shadowMap, cubeToUV( bd3D + offset.xxy, texelSize.y ), dp ) +
+          texture2DCompare( shadowMap, cubeToUV( bd3D + offset.yxy, texelSize.y ), dp ) +
+          texture2DCompare( shadowMap, cubeToUV( bd3D + offset.xxx, texelSize.y ), dp ) +
+          texture2DCompare( shadowMap, cubeToUV( bd3D + offset.yxx, texelSize.y ), dp )
+        ) * ( 1.0 / 9.0 );
+      #else
+        shadow = texture2DCompare( shadowMap, cubeToUV( bd3D, texelSize.y ), dp );
+      #endif
+    }
+    return shadow;
   }
 #endif
 // end <shadowmap_pars_fragment>
@@ -826,7 +831,7 @@ void RE_IndirectDiffuse_Toon( const in vec3 irradiance, const in vec3 geometryPo
 
 
 // start <logdepthbuf_pars_fragment> https://github.com/mrdoob/three.js/blob/master/src/renderers/shaders/ShaderChunk/logdepthbuf_pars_fragment.glsl.js
-#if defined( USE_LOGDEPTHBUF ) && defined( USE_LOGDEPTHBUF_EXT )
+#if defined( USE_LOGDEPTHBUF )
   uniform float logDepthBufFC;
   varying float vFragDepth;
   varying float vIsPerspective;
@@ -873,8 +878,8 @@ void main() {
   vec3 totalEmissiveRadiance = emissive;
   
 // start <logdepthbuf_fragment> https://github.com/mrdoob/three.js/blob/master/src/renderers/shaders/ShaderChunk/logdepthbuf_fragment.glsl.js
-#if defined( USE_LOGDEPTHBUF ) && defined( USE_LOGDEPTHBUF_EXT )
-  gl_FragDepthEXT = vIsPerspective == 0.0 ? gl_FragCoord.z : log2( vFragDepth ) * logDepthBufFC * 0.5;
+#if defined( USE_LOGDEPTHBUF )
+  gl_FragDepth = vIsPerspective == 0.0 ? gl_FragCoord.z : log2( vFragDepth ) * logDepthBufFC * 0.5;
 #endif
 // end <logdepthbuf_fragment>
 

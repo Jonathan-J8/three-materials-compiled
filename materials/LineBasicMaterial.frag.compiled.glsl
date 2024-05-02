@@ -1,5 +1,4 @@
 #version 300 es
-precision mediump sampler2DArray;
 #define varying in
 layout(location = 0) out highp vec4 pc_fragColor;
 #define gl_FragColor pc_fragColor
@@ -18,19 +17,19 @@ precision highp float;
   precision highp sampler2D;
   precision highp samplerCube;
   precision highp sampler3D;
-    precision highp sampler2DArray;
-    precision highp sampler2DShadow;
-    precision highp samplerCubeShadow;
-    precision highp sampler2DArrayShadow;
-    precision highp isampler2D;
-    precision highp isampler3D;
-    precision highp isamplerCube;
-    precision highp isampler2DArray;
-    precision highp usampler2D;
-    precision highp usampler3D;
-    precision highp usamplerCube;
-    precision highp usampler2DArray;
-    
+  precision highp sampler2DArray;
+  precision highp sampler2DShadow;
+  precision highp samplerCubeShadow;
+  precision highp sampler2DArrayShadow;
+  precision highp isampler2D;
+  precision highp isampler3D;
+  precision highp isamplerCube;
+  precision highp isampler2DArray;
+  precision highp usampler2D;
+  precision highp usampler3D;
+  precision highp usamplerCube;
+  precision highp usampler2DArray;
+  
 #define HIGH_PRECISION
 #define SHADER_TYPE LineBasicMaterial
 #define SHADER_NAME 
@@ -335,6 +334,7 @@ float F_Schlick( const in float f0, const in float f90, const in float dotVH ) {
 #ifdef USE_ENVMAP
   uniform float envMapIntensity;
   uniform float flipEnvMap;
+  uniform mat3 envMapRotation;
   #ifdef ENVMAP_TYPE_CUBE
     uniform samplerCube envMap;
   #else
@@ -383,7 +383,7 @@ float F_Schlick( const in float f0, const in float f90, const in float dotVH ) {
 
 
 // start <logdepthbuf_pars_fragment> https://github.com/mrdoob/three.js/blob/master/src/renderers/shaders/ShaderChunk/logdepthbuf_pars_fragment.glsl.js
-#if defined( USE_LOGDEPTHBUF ) && defined( USE_LOGDEPTHBUF_EXT )
+#if defined( USE_LOGDEPTHBUF )
   uniform float logDepthBufFC;
   varying float vFragDepth;
   varying float vIsPerspective;
@@ -428,8 +428,8 @@ void main() {
 
   
 // start <logdepthbuf_fragment> https://github.com/mrdoob/three.js/blob/master/src/renderers/shaders/ShaderChunk/logdepthbuf_fragment.glsl.js
-#if defined( USE_LOGDEPTHBUF ) && defined( USE_LOGDEPTHBUF_EXT )
-  gl_FragDepthEXT = vIsPerspective == 0.0 ? gl_FragCoord.z : log2( vFragDepth ) * logDepthBufFC * 0.5;
+#if defined( USE_LOGDEPTHBUF )
+  gl_FragDepth = vIsPerspective == 0.0 ? gl_FragCoord.z : log2( vFragDepth ) * logDepthBufFC * 0.5;
 #endif
 // end <logdepthbuf_fragment>
 
@@ -538,7 +538,7 @@ float specularStrength;
     vec3 reflectVec = vReflect;
   #endif
   #ifdef ENVMAP_TYPE_CUBE
-    vec4 envColor = textureCube( envMap, vec3( flipEnvMap * reflectVec.x, reflectVec.yz ) );
+    vec4 envColor = textureCube( envMap, envMapRotation * vec3( flipEnvMap * reflectVec.x, reflectVec.yz ) );
   #else
     vec4 envColor = vec4( 0.0 );
   #endif

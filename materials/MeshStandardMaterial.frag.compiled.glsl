@@ -1,5 +1,4 @@
 #version 300 es
-precision mediump sampler2DArray;
 #define varying in
 layout(location = 0) out highp vec4 pc_fragColor;
 #define gl_FragColor pc_fragColor
@@ -18,19 +17,19 @@ precision highp float;
   precision highp sampler2D;
   precision highp samplerCube;
   precision highp sampler3D;
-    precision highp sampler2DArray;
-    precision highp sampler2DShadow;
-    precision highp samplerCubeShadow;
-    precision highp sampler2DArrayShadow;
-    precision highp isampler2D;
-    precision highp isampler3D;
-    precision highp isamplerCube;
-    precision highp isampler2DArray;
-    precision highp usampler2D;
-    precision highp usampler3D;
-    precision highp usamplerCube;
-    precision highp usampler2DArray;
-    
+  precision highp sampler2DArray;
+  precision highp sampler2DShadow;
+  precision highp samplerCubeShadow;
+  precision highp sampler2DArrayShadow;
+  precision highp isampler2D;
+  precision highp isampler3D;
+  precision highp isamplerCube;
+  precision highp isampler2DArray;
+  precision highp usampler2D;
+  precision highp usampler3D;
+  precision highp usamplerCube;
+  precision highp usampler2DArray;
+  
 #define HIGH_PRECISION
 #define SHADER_TYPE MeshStandardMaterial
 #define SHADER_NAME 
@@ -96,6 +95,9 @@ uniform float opacity;
 #ifdef USE_CLEARCOAT
   uniform float clearcoat;
   uniform float clearcoatRoughness;
+#endif
+#ifdef USE_DISPERSION
+  uniform float dispersion;
 #endif
 #ifdef USE_IRIDESCENCE
   uniform float iridescence;
@@ -600,6 +602,7 @@ float perspectiveDepthToViewZ( const in float depth, const in float near, const 
 #ifdef USE_ENVMAP
   uniform float envMapIntensity;
   uniform float flipEnvMap;
+  uniform mat3 envMapRotation;
   #ifdef ENVMAP_TYPE_CUBE
     uniform samplerCube envMap;
   #else
@@ -615,7 +618,7 @@ float perspectiveDepthToViewZ( const in float depth, const in float near, const 
   vec3 getIBLIrradiance( const in vec3 normal ) {
     #ifdef ENVMAP_TYPE_CUBE_UV
       vec3 worldNormal = inverseTransformDirection( normal, viewMatrix );
-      vec4 envMapColor = textureCubeUV( envMap, worldNormal, 1.0 );
+      vec4 envMapColor = textureCubeUV( envMap, envMapRotation * worldNormal, 1.0 );
       return PI * envMapColor.rgb * envMapIntensity;
     #else
       return vec3( 0.0 );
@@ -626,7 +629,7 @@ float perspectiveDepthToViewZ( const in float depth, const in float near, const 
       vec3 reflectVec = reflect( - viewDir, normal );
       reflectVec = normalize( mix( reflectVec, normal, roughness * roughness) );
       reflectVec = inverseTransformDirection( reflectVec, viewMatrix );
-      vec4 envMapColor = textureCubeUV( envMap, reflectVec, roughness );
+      vec4 envMapColor = textureCubeUV( envMap, envMapRotation * reflectVec, roughness );
       return envMapColor.rgb * envMapIntensity;
     #else
       return vec3( 0.0 );
@@ -807,6 +810,7 @@ struct PhysicalMaterial {
   float roughness;
   vec3 specularColor;
   float specularF90;
+  float dispersion;
   #ifdef USE_CLEARCOAT
     float clearcoat;
     float clearcoatRoughness;
@@ -1198,16 +1202,41 @@ float computeSpecularOcclusion( const in float dotNV, const in float ambientOccl
   }
   vec4 getIBLVolumeRefraction( const in vec3 n, const in vec3 v, const in float roughness, const in vec3 diffuseColor,
     const in vec3 specularColor, const in float specularF90, const in vec3 position, const in mat4 modelMatrix,
-    const in mat4 viewMatrix, const in mat4 projMatrix, const in float ior, const in float thickness,
+    const in mat4 viewMatrix, const in mat4 projMatrix, const in float dispersion, const in float ior, const in float thickness,
     const in vec3 attenuationColor, const in float attenuationDistance ) {
-    vec3 transmissionRay = getVolumeTransmissionRay( n, v, thickness, ior, modelMatrix );
-    vec3 refractedRayExit = position + transmissionRay;
-    vec4 ndcPos = projMatrix * viewMatrix * vec4( refractedRayExit, 1.0 );
-    vec2 refractionCoords = ndcPos.xy / ndcPos.w;
-    refractionCoords += 1.0;
-    refractionCoords /= 2.0;
-    vec4 transmittedLight = getTransmissionSample( refractionCoords, roughness, ior );
-    vec3 transmittance = diffuseColor * volumeAttenuation( length( transmissionRay ), attenuationColor, attenuationDistance );
+    vec4 transmittedLight;
+    vec3 transmittance;
+    #ifdef USE_DISPERSION
+      float halfSpread = ( ior - 1.0 ) * 0.025 * dispersion;
+      vec3 iors = vec3( ior - halfSpread, ior, ior + halfSpread );
+      for ( int i = 0; i < 3; i ++ ) {
+        vec3 transmissionRay = getVolumeTransmissionRay( n, v, thickness, iors[ i ], modelMatrix );
+        vec3 refractedRayExit = position + transmissionRay;
+    
+        vec4 ndcPos = projMatrix * viewMatrix * vec4( refractedRayExit, 1.0 );
+        vec2 refractionCoords = ndcPos.xy / ndcPos.w;
+        refractionCoords += 1.0;
+        refractionCoords /= 2.0;
+    
+        vec4 transmissionSample = getTransmissionSample( refractionCoords, roughness, iors[ i ] );
+        transmittedLight[ i ] = transmissionSample[ i ];
+        transmittedLight.a += transmissionSample.a;
+        transmittance[ i ] = diffuseColor[ i ] * volumeAttenuation( length( transmissionRay ), attenuationColor, attenuationDistance )[ i ];
+      }
+      transmittedLight.a /= 3.0;
+    
+    #else
+    
+      vec3 transmissionRay = getVolumeTransmissionRay( n, v, thickness, ior, modelMatrix );
+      vec3 refractedRayExit = position + transmissionRay;
+      vec4 ndcPos = projMatrix * viewMatrix * vec4( refractedRayExit, 1.0 );
+      vec2 refractionCoords = ndcPos.xy / ndcPos.w;
+      refractionCoords += 1.0;
+      refractionCoords /= 2.0;
+      transmittedLight = getTransmissionSample( refractionCoords, roughness, ior );
+      transmittance = diffuseColor * volumeAttenuation( length( transmissionRay ), attenuationColor, attenuationDistance );
+    
+    #endif
     vec3 attenuatedColor = transmittance * transmittedLight.rgb;
     vec3 F = EnvironmentBRDF( n, v, specularColor, specularF90, roughness );
     float transmittanceFactor = ( transmittance.r + transmittance.g + transmittance.b ) / 3.0;
@@ -1374,26 +1403,32 @@ float computeSpecularOcclusion( const in float dotNV, const in float ambientOccl
     return vec2( 0.125, 0.25 ) * planar + vec2( 0.375, 0.75 );
   }
   float getPointShadow( sampler2D shadowMap, vec2 shadowMapSize, float shadowBias, float shadowRadius, vec4 shadowCoord, float shadowCameraNear, float shadowCameraFar ) {
-    vec2 texelSize = vec2( 1.0 ) / ( shadowMapSize * vec2( 4.0, 2.0 ) );
+    float shadow = 1.0;
     vec3 lightToPosition = shadowCoord.xyz;
-    float dp = ( length( lightToPosition ) - shadowCameraNear ) / ( shadowCameraFar - shadowCameraNear );    dp += shadowBias;
-    vec3 bd3D = normalize( lightToPosition );
-    #if defined( SHADOWMAP_TYPE_PCF ) || defined( SHADOWMAP_TYPE_PCF_SOFT ) || defined( SHADOWMAP_TYPE_VSM )
-      vec2 offset = vec2( - 1, 1 ) * shadowRadius * texelSize.y;
-      return (
-        texture2DCompare( shadowMap, cubeToUV( bd3D + offset.xyy, texelSize.y ), dp ) +
-        texture2DCompare( shadowMap, cubeToUV( bd3D + offset.yyy, texelSize.y ), dp ) +
-        texture2DCompare( shadowMap, cubeToUV( bd3D + offset.xyx, texelSize.y ), dp ) +
-        texture2DCompare( shadowMap, cubeToUV( bd3D + offset.yyx, texelSize.y ), dp ) +
-        texture2DCompare( shadowMap, cubeToUV( bd3D, texelSize.y ), dp ) +
-        texture2DCompare( shadowMap, cubeToUV( bd3D + offset.xxy, texelSize.y ), dp ) +
-        texture2DCompare( shadowMap, cubeToUV( bd3D + offset.yxy, texelSize.y ), dp ) +
-        texture2DCompare( shadowMap, cubeToUV( bd3D + offset.xxx, texelSize.y ), dp ) +
-        texture2DCompare( shadowMap, cubeToUV( bd3D + offset.yxx, texelSize.y ), dp )
-      ) * ( 1.0 / 9.0 );
-    #else
-      return texture2DCompare( shadowMap, cubeToUV( bd3D, texelSize.y ), dp );
-    #endif
+    
+    float lightToPositionLength = length( lightToPosition );
+    if ( lightToPositionLength - shadowCameraFar <= 0.0 && lightToPositionLength - shadowCameraNear >= 0.0 ) {
+      float dp = ( lightToPositionLength - shadowCameraNear ) / ( shadowCameraFar - shadowCameraNear );      dp += shadowBias;
+      vec3 bd3D = normalize( lightToPosition );
+      vec2 texelSize = vec2( 1.0 ) / ( shadowMapSize * vec2( 4.0, 2.0 ) );
+      #if defined( SHADOWMAP_TYPE_PCF ) || defined( SHADOWMAP_TYPE_PCF_SOFT ) || defined( SHADOWMAP_TYPE_VSM )
+        vec2 offset = vec2( - 1, 1 ) * shadowRadius * texelSize.y;
+        shadow = (
+          texture2DCompare( shadowMap, cubeToUV( bd3D + offset.xyy, texelSize.y ), dp ) +
+          texture2DCompare( shadowMap, cubeToUV( bd3D + offset.yyy, texelSize.y ), dp ) +
+          texture2DCompare( shadowMap, cubeToUV( bd3D + offset.xyx, texelSize.y ), dp ) +
+          texture2DCompare( shadowMap, cubeToUV( bd3D + offset.yyx, texelSize.y ), dp ) +
+          texture2DCompare( shadowMap, cubeToUV( bd3D, texelSize.y ), dp ) +
+          texture2DCompare( shadowMap, cubeToUV( bd3D + offset.xxy, texelSize.y ), dp ) +
+          texture2DCompare( shadowMap, cubeToUV( bd3D + offset.yxy, texelSize.y ), dp ) +
+          texture2DCompare( shadowMap, cubeToUV( bd3D + offset.xxx, texelSize.y ), dp ) +
+          texture2DCompare( shadowMap, cubeToUV( bd3D + offset.yxx, texelSize.y ), dp )
+        ) * ( 1.0 / 9.0 );
+      #else
+        shadow = texture2DCompare( shadowMap, cubeToUV( bd3D, texelSize.y ), dp );
+      #endif
+    }
+    return shadow;
   }
 #endif
 // end <shadowmap_pars_fragment>
@@ -1491,7 +1526,7 @@ float computeSpecularOcclusion( const in float dotNV, const in float ambientOccl
 
 
 // start <logdepthbuf_pars_fragment> https://github.com/mrdoob/three.js/blob/master/src/renderers/shaders/ShaderChunk/logdepthbuf_pars_fragment.glsl.js
-#if defined( USE_LOGDEPTHBUF ) && defined( USE_LOGDEPTHBUF_EXT )
+#if defined( USE_LOGDEPTHBUF )
   uniform float logDepthBufFC;
   varying float vFragDepth;
   varying float vIsPerspective;
@@ -1538,8 +1573,8 @@ void main() {
   vec3 totalEmissiveRadiance = emissive;
   
 // start <logdepthbuf_fragment> https://github.com/mrdoob/three.js/blob/master/src/renderers/shaders/ShaderChunk/logdepthbuf_fragment.glsl.js
-#if defined( USE_LOGDEPTHBUF ) && defined( USE_LOGDEPTHBUF_EXT )
-  gl_FragDepthEXT = vIsPerspective == 0.0 ? gl_FragCoord.z : log2( vFragDepth ) * logDepthBufFC * 0.5;
+#if defined( USE_LOGDEPTHBUF )
+  gl_FragDepth = vIsPerspective == 0.0 ? gl_FragCoord.z : log2( vFragDepth ) * logDepthBufFC * 0.5;
 #endif
 // end <logdepthbuf_fragment>
 
@@ -1743,6 +1778,9 @@ material.roughness = min( material.roughness, 1.0 );
   material.clearcoatRoughness += geometryRoughness;
   material.clearcoatRoughness = min( material.clearcoatRoughness, 1.0 );
 #endif
+#ifdef USE_DISPERSION
+  material.dispersion = dispersion;
+#endif
 #ifdef USE_IRIDESCENCE
   material.iridescence = iridescence;
   material.iridescenceIOR = iridescenceIOR;
@@ -1926,7 +1964,7 @@ IncidentLight directLight;
   vec3 n = inverseTransformDirection( normal, viewMatrix );
   vec4 transmitted = getIBLVolumeRefraction(
     n, v, material.roughness, material.diffuseColor, material.specularColor, material.specularF90,
-    pos, modelMatrix, viewMatrix, projectionMatrix, material.ior, material.thickness,
+    pos, modelMatrix, viewMatrix, projectionMatrix, material.dispersion, material.ior, material.thickness,
     material.attenuationColor, material.attenuationDistance );
   material.transmissionAlpha = mix( material.transmissionAlpha, transmitted.a, material.transmission );
   totalDiffuse = mix( totalDiffuse, transmitted.rgb, material.transmission );

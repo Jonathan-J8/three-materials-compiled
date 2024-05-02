@@ -1,6 +1,6 @@
 # three-materials-compiled
 
-From [three.js](https://threejs.org/) version 0.161.0
+From [three.js](https://threejs.org/) version 0.164.1
 
 Are you tired of constantly searching the meanings of differents chunks in three.js shaders?  
 Here is the list of most materials. It provid the compliled shaders, pre-compiled shaders and the materials uniforms.
