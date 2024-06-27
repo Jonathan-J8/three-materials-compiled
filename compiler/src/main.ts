@@ -76,10 +76,10 @@ const main = async () => {
     renderer.render(scene, camera);
     scene.remove(mesh);
 
-    mesh.geometry.dispose();
     mesh.material.dispose();
   }
 
+  geometry.dispose();
   scene.clear();
   camera.clear();
   renderer.dispose();
