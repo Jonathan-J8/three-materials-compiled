@@ -7,6 +7,7 @@ declare global {
     h1Element: HTMLElement;
     h2Element: HTMLElement;
     btnElement: HTMLButtonElement;
+    appState?: string;
     launchCompilation: () => void;
   }
 }

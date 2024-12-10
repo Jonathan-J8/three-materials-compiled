@@ -13,22 +13,22 @@ layout(location = 0) out highp vec4 pc_fragColor;
 #define texture2DProjGradEXT textureProjGrad
 #define textureCubeGradEXT textureGrad
 precision highp float;
-  precision highp int;
-  precision highp sampler2D;
-  precision highp samplerCube;
-  precision highp sampler3D;
-  precision highp sampler2DArray;
-  precision highp sampler2DShadow;
-  precision highp samplerCubeShadow;
-  precision highp sampler2DArrayShadow;
-  precision highp isampler2D;
-  precision highp isampler3D;
-  precision highp isamplerCube;
-  precision highp isampler2DArray;
-  precision highp usampler2D;
-  precision highp usampler3D;
-  precision highp usamplerCube;
-  precision highp usampler2DArray;
+precision highp int;
+precision highp sampler2D;
+precision highp samplerCube;
+precision highp sampler3D;
+precision highp sampler2DArray;
+precision highp sampler2DShadow;
+precision highp samplerCubeShadow;
+precision highp sampler2DArrayShadow;
+precision highp isampler2D;
+precision highp isampler3D;
+precision highp isamplerCube;
+precision highp isampler2DArray;
+precision highp usampler2D;
+precision highp usampler3D;
+precision highp usamplerCube;
+precision highp usampler2DArray;
   
 #define HIGH_PRECISION
 #define SHADER_TYPE MeshStandardMaterial
@@ -38,36 +38,22 @@ uniform mat4 viewMatrix;
 uniform vec3 cameraPosition;
 uniform bool isOrthographic;
 #define OPAQUE
-
-const mat3 LINEAR_SRGB_TO_LINEAR_DISPLAY_P3 = mat3(
-  vec3( 0.8224621, 0.177538, 0.0 ),
-  vec3( 0.0331941, 0.9668058, 0.0 ),
-  vec3( 0.0170827, 0.0723974, 0.9105199 )
-);
-const mat3 LINEAR_DISPLAY_P3_TO_LINEAR_SRGB = mat3(
-  vec3( 1.2249401, - 0.2249404, 0.0 ),
-  vec3( - 0.0420569, 1.0420571, 0.0 ),
-  vec3( - 0.0196376, - 0.0786361, 1.0982735 )
-);
-vec4 LinearSRGBToLinearDisplayP3( in vec4 value ) {
-  return vec4( value.rgb * LINEAR_SRGB_TO_LINEAR_DISPLAY_P3, value.a );
-}
-vec4 LinearDisplayP3ToLinearSRGB( in vec4 value ) {
-  return vec4( value.rgb * LINEAR_DISPLAY_P3_TO_LINEAR_SRGB, value.a );
-}
 vec4 LinearTransferOETF( in vec4 value ) {
   return value;
+}
+vec4 sRGBTransferEOTF( in vec4 value ) {
+  return vec4( mix( pow( value.rgb * 0.9478672986 + vec3( 0.0521327014 ), vec3( 2.4 ) ), value.rgb * 0.0773993808, vec3( lessThanEqual( value.rgb, vec3( 0.04045 ) ) ) ), value.a );
 }
 vec4 sRGBTransferOETF( in vec4 value ) {
   return vec4( mix( pow( value.rgb, vec3( 0.41666 ) ) * 1.055 - vec3( 0.055 ), value.rgb * 12.92, vec3( lessThanEqual( value.rgb, vec3( 0.0031308 ) ) ) ), value.a );
 }
-vec4 LinearToLinear( in vec4 value ) {
-  return value;
+vec4 linearToOutputTexel( vec4 value ) {
+  return sRGBTransferOETF( vec4( value.rgb * mat3( 1.0000,-0.0000,-0.0000,-0.0000,1.0000,0.0000,0.0000,0.0000,1.0000 ), value.a ) );
 }
-vec4 LinearTosRGB( in vec4 value ) {
-  return sRGBTransferOETF( value );
+float luminance( const in vec3 rgb ) {
+  const vec3 weights = vec3( 0.2126, 0.7152, 0.0722 );
+  return dot( weights, rgb );
 }
-vec4 linearToOutputTexel( vec4 value ) { return ( sRGBTransferOETF( value ) ); }
 
 #define STANDARD
 #ifdef PHYSICAL
@@ -180,10 +166,6 @@ mat3 transposeMat3( const in mat3 m ) {
   tmp[ 2 ] = vec3( m[ 0 ].z, m[ 1 ].z, m[ 2 ].z );
   return tmp;
 }
-float luminance( const in vec3 rgb ) {
-  const vec3 weights = vec3( 0.2126729, 0.7151522, 0.0721750 );
-  return dot( weights, rgb );
-}
 bool isPerspectiveMatrix( mat4 m ) {
   return m[ 2 ][ 3 ] == - 1.0;
 }
@@ -213,28 +195,56 @@ vec3 packNormalToRGB( const in vec3 normal ) {
 vec3 unpackRGBToNormal( const in vec3 rgb ) {
   return 2.0 * rgb.xyz - 1.0;
 }
-const float PackUpscale = 256. / 255.;const float UnpackDownscale = 255. / 256.;
-const vec3 PackFactors = vec3( 256. * 256. * 256., 256. * 256., 256. );
-const vec4 UnpackFactors = UnpackDownscale / vec4( PackFactors, 1. );
-const float ShiftRight8 = 1. / 256.;
+const float PackUpscale = 256. / 255.;const float UnpackDownscale = 255. / 256.;const float ShiftRight8 = 1. / 256.;
+const float Inv255 = 1. / 255.;
+const vec4 PackFactors = vec4( 1.0, 256.0, 256.0 * 256.0, 256.0 * 256.0 * 256.0 );
+const vec2 UnpackFactors2 = vec2( UnpackDownscale, 1.0 / PackFactors.g );
+const vec3 UnpackFactors3 = vec3( UnpackDownscale / PackFactors.rg, 1.0 / PackFactors.b );
+const vec4 UnpackFactors4 = vec4( UnpackDownscale / PackFactors.rgb, 1.0 / PackFactors.a );
 vec4 packDepthToRGBA( const in float v ) {
-  vec4 r = vec4( fract( v * PackFactors ), v );
-  r.yzw -= r.xyz * ShiftRight8;  return r * PackUpscale;
+  if( v <= 0.0 )
+    return vec4( 0., 0., 0., 0. );
+  if( v >= 1.0 )
+    return vec4( 1., 1., 1., 1. );
+  float vuf;
+  float af = modf( v * PackFactors.a, vuf );
+  float bf = modf( vuf * ShiftRight8, vuf );
+  float gf = modf( vuf * ShiftRight8, vuf );
+  return vec4( vuf * Inv255, gf * PackUpscale, bf * PackUpscale, af );
+}
+vec3 packDepthToRGB( const in float v ) {
+  if( v <= 0.0 )
+    return vec3( 0., 0., 0. );
+  if( v >= 1.0 )
+    return vec3( 1., 1., 1. );
+  float vuf;
+  float bf = modf( v * PackFactors.b, vuf );
+  float gf = modf( vuf * ShiftRight8, vuf );
+  return vec3( vuf * Inv255, gf * PackUpscale, bf );
+}
+vec2 packDepthToRG( const in float v ) {
+  if( v <= 0.0 )
+    return vec2( 0., 0. );
+  if( v >= 1.0 )
+    return vec2( 1., 1. );
+  float vuf;
+  float gf = modf( v * 256., vuf );
+  return vec2( vuf * Inv255, gf );
 }
 float unpackRGBAToDepth( const in vec4 v ) {
-  return dot( v, UnpackFactors );
+  return dot( v, UnpackFactors4 );
 }
-vec2 packDepthToRG( in highp float v ) {
-  return packDepthToRGBA( v ).yx;
+float unpackRGBToDepth( const in vec3 v ) {
+  return dot( v, UnpackFactors3 );
 }
-float unpackRGToDepth( const in highp vec2 v ) {
-  return unpackRGBAToDepth( vec4( v.xy, 0.0, 0.0 ) );
+float unpackRGToDepth( const in vec2 v ) {
+  return v.r * UnpackFactors2.r + v.g * UnpackFactors2.g;
 }
-vec4 pack2HalfToRGBA( vec2 v ) {
+vec4 pack2HalfToRGBA( const in vec2 v ) {
   vec4 r = vec4( v.x, fract( v.x * 255.0 ), v.y, fract( v.y * 255.0 ) );
   return vec4( r.x - r.y / 255.0, r.y, r.z - r.w / 255.0, r.w );
 }
-vec2 unpackRGBATo2Half( vec4 v ) {
+vec2 unpackRGBATo2Half( const in vec4 v ) {
   return vec2( v.x + ( v.y / 255.0 ), v.z + ( v.w / 255.0 ) );
 }
 float viewZToOrthographicDepth( const in float viewZ, const in float near, const in float far ) {
@@ -694,18 +704,11 @@ vec3 getAmbientLightIrradiance( const in vec3 ambientLightColor ) {
   return irradiance;
 }
 float getDistanceAttenuation( const in float lightDistance, const in float cutoffDistance, const in float decayExponent ) {
-  #if defined ( LEGACY_LIGHTS )
-    if ( cutoffDistance > 0.0 && decayExponent > 0.0 ) {
-      return pow( saturate( - lightDistance / cutoffDistance + 1.0 ), decayExponent );
-    }
-    return 1.0;
-  #else
-    float distanceFalloff = 1.0 / max( pow( lightDistance, decayExponent ), 0.01 );
-    if ( cutoffDistance > 0.0 ) {
-      distanceFalloff *= pow2( saturate( 1.0 - pow4( lightDistance / cutoffDistance ) ) );
-    }
-    return distanceFalloff;
-  #endif
+  float distanceFalloff = 1.0 / max( pow( lightDistance, decayExponent ), 0.01 );
+  if ( cutoffDistance > 0.0 ) {
+    distanceFalloff *= pow2( saturate( 1.0 - pow4( lightDistance / cutoffDistance ) ) );
+  }
+  return distanceFalloff;
 }
 float getSpotAttenuation( const in float coneCosine, const in float penumbraCosine, const in float angleCosine ) {
   return smoothstep( coneCosine, penumbraCosine, angleCosine );
@@ -1258,6 +1261,7 @@ float computeSpecularOcclusion( const in float dotNV, const in float ambientOccl
     uniform sampler2D directionalShadowMap[ 0 ];
     varying vec4 vDirectionalShadowCoord[ 0 ];
     struct DirectionalLightShadow {
+      float shadowIntensity;
       float shadowBias;
       float shadowNormalBias;
       float shadowRadius;
@@ -1268,6 +1272,7 @@ float computeSpecularOcclusion( const in float dotNV, const in float ambientOccl
   #if 0 > 0
     uniform sampler2D spotShadowMap[ 0 ];
     struct SpotLightShadow {
+      float shadowIntensity;
       float shadowBias;
       float shadowNormalBias;
       float shadowRadius;
@@ -1279,6 +1284,7 @@ float computeSpecularOcclusion( const in float dotNV, const in float ambientOccl
     uniform sampler2D pointShadowMap[ 0 ];
     varying vec4 vPointShadowCoord[ 0 ];
     struct PointLightShadow {
+      float shadowIntensity;
       float shadowBias;
       float shadowNormalBias;
       float shadowRadius;
@@ -1305,7 +1311,7 @@ float computeSpecularOcclusion( const in float dotNV, const in float ambientOccl
     }
     return occlusion;
   }
-  float getShadow( sampler2D shadowMap, vec2 shadowMapSize, float shadowBias, float shadowRadius, vec4 shadowCoord ) {
+  float getShadow( sampler2D shadowMap, vec2 shadowMapSize, float shadowIntensity, float shadowBias, float shadowRadius, vec4 shadowCoord ) {
     float shadow = 1.0;
     shadowCoord.xyz /= shadowCoord.w;
     shadowCoord.z += shadowBias;
@@ -1379,7 +1385,7 @@ float computeSpecularOcclusion( const in float dotNV, const in float ambientOccl
       shadow = texture2DCompare( shadowMap, shadowCoord.xy, shadowCoord.z );
     #endif
     }
-    return shadow;
+    return mix( 1.0, shadow, shadowIntensity );
   }
   vec2 cubeToUV( vec3 v, float texelSizeY ) {
     vec3 absV = abs( v );
@@ -1402,7 +1408,7 @@ float computeSpecularOcclusion( const in float dotNV, const in float ambientOccl
     }
     return vec2( 0.125, 0.25 ) * planar + vec2( 0.375, 0.75 );
   }
-  float getPointShadow( sampler2D shadowMap, vec2 shadowMapSize, float shadowBias, float shadowRadius, vec4 shadowCoord, float shadowCameraNear, float shadowCameraFar ) {
+  float getPointShadow( sampler2D shadowMap, vec2 shadowMapSize, float shadowIntensity, float shadowBias, float shadowRadius, vec4 shadowCoord, float shadowCameraNear, float shadowCameraFar ) {
     float shadow = 1.0;
     vec3 lightToPosition = shadowCoord.xyz;
     
@@ -1428,7 +1434,7 @@ float computeSpecularOcclusion( const in float dotNV, const in float ambientOccl
         shadow = texture2DCompare( shadowMap, cubeToUV( bd3D, texelSize.y ), dp );
       #endif
     }
-    return shadow;
+    return mix( 1.0, shadow, shadowIntensity );
   }
 #endif
 // end <shadowmap_pars_fragment>
@@ -1583,8 +1589,7 @@ void main() {
 #ifdef USE_MAP
   vec4 sampledDiffuseColor = texture2D( map, vMapUv );
   #ifdef DECODE_VIDEO_TEXTURE
-    sampledDiffuseColor = vec4( mix( pow( sampledDiffuseColor.rgb * 0.9478672986 + vec3( 0.0521327014 ), vec3( 2.4 ) ), sampledDiffuseColor.rgb * 0.0773993808, vec3( lessThanEqual( sampledDiffuseColor.rgb, vec3( 0.04045 ) ) ) ), sampledDiffuseColor.w );
-  
+    sampledDiffuseColor = sRGBTransferEOTF( sampledDiffuseColor );
   #endif
   diffuseColor *= sampledDiffuseColor;
 #endif
@@ -1729,6 +1734,9 @@ vec3 nonPerturbedNormal = normal;
 // start <emissivemap_fragment> https://github.com/mrdoob/three.js/blob/master/src/renderers/shaders/ShaderChunk/emissivemap_fragment.glsl.js
 #ifdef USE_EMISSIVEMAP
   vec4 emissiveColor = texture2D( emissiveMap, vEmissiveMapUv );
+  #ifdef DECODE_VIDEO_TEXTURE_EMISSIVE
+    emissiveColor = sRGBTransferEOTF( emissiveColor );
+  #endif
   totalEmissiveRadiance *= emissiveColor.rgb;
 #endif
 // end <emissivemap_fragment>

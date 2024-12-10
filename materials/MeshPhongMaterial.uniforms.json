@@ -249,6 +249,7 @@
   "directionalLightShadows": {
     "value": [],
     "properties": {
+      "shadowIntensity": 1,
       "shadowBias": {},
       "shadowNormalBias": {},
       "shadowRadius": {},
@@ -276,6 +277,7 @@
   "spotLightShadows": {
     "value": [],
     "properties": {
+      "shadowIntensity": 1,
       "shadowBias": {},
       "shadowNormalBias": {},
       "shadowRadius": {},
@@ -303,6 +305,7 @@
   "pointLightShadows": {
     "value": [],
     "properties": {
+      "shadowIntensity": 1,
       "shadowBias": {},
       "shadowNormalBias": {},
       "shadowRadius": {},

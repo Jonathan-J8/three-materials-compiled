@@ -4,22 +4,22 @@
 #define varying out
 #define texture2D texture
 precision highp float;
-  precision highp int;
-  precision highp sampler2D;
-  precision highp samplerCube;
-  precision highp sampler3D;
-  precision highp sampler2DArray;
-  precision highp sampler2DShadow;
-  precision highp samplerCubeShadow;
-  precision highp sampler2DArrayShadow;
-  precision highp isampler2D;
-  precision highp isampler3D;
-  precision highp isamplerCube;
-  precision highp isampler2DArray;
-  precision highp usampler2D;
-  precision highp usampler3D;
-  precision highp usamplerCube;
-  precision highp usampler2DArray;
+precision highp int;
+precision highp sampler2D;
+precision highp samplerCube;
+precision highp sampler3D;
+precision highp sampler2DArray;
+precision highp sampler2DShadow;
+precision highp samplerCubeShadow;
+precision highp sampler2DArrayShadow;
+precision highp isampler2D;
+precision highp isampler3D;
+precision highp isamplerCube;
+precision highp isampler2DArray;
+precision highp usampler2D;
+precision highp usampler3D;
+precision highp usamplerCube;
+precision highp usampler2DArray;
   
 #define HIGH_PRECISION
 #define SHADER_TYPE SpriteMaterial
@@ -60,23 +60,6 @@ attribute vec2 uv;
   attribute vec4 color;
 #elif defined( USE_COLOR )
   attribute vec3 color;
-#endif
-#if ( defined( USE_MORPHTARGETS ) && ! defined( MORPHTARGETS_TEXTURE ) )
-  attribute vec3 morphTarget0;
-  attribute vec3 morphTarget1;
-  attribute vec3 morphTarget2;
-  attribute vec3 morphTarget3;
-  #ifdef USE_MORPHNORMALS
-    attribute vec3 morphNormal0;
-    attribute vec3 morphNormal1;
-    attribute vec3 morphNormal2;
-    attribute vec3 morphNormal3;
-  #else
-    attribute vec3 morphTarget4;
-    attribute vec3 morphTarget5;
-    attribute vec3 morphTarget6;
-    attribute vec3 morphTarget7;
-  #endif
 #endif
 #ifdef USE_SKINNING
   attribute vec4 skinIndex;
@@ -142,10 +125,6 @@ mat3 transposeMat3( const in mat3 m ) {
   tmp[ 1 ] = vec3( m[ 0 ].y, m[ 1 ].y, m[ 2 ].y );
   tmp[ 2 ] = vec3( m[ 0 ].z, m[ 1 ].z, m[ 2 ].z );
   return tmp;
-}
-float luminance( const in vec3 rgb ) {
-  const vec3 weights = vec3( 0.2126729, 0.7151522, 0.0721750 );
-  return dot( weights, rgb );
 }
 bool isPerspectiveMatrix( mat4 m ) {
   return m[ 2 ][ 3 ] == - 1.0;
@@ -366,10 +345,8 @@ void main() {
 #endif
 // end <uv_vertex>
 
-  vec4 mvPosition = modelViewMatrix * vec4( 0.0, 0.0, 0.0, 1.0 );
-  vec2 scale;
-  scale.x = length( vec3( modelMatrix[ 0 ].x, modelMatrix[ 0 ].y, modelMatrix[ 0 ].z ) );
-  scale.y = length( vec3( modelMatrix[ 1 ].x, modelMatrix[ 1 ].y, modelMatrix[ 1 ].z ) );
+  vec4 mvPosition = modelViewMatrix[ 3 ];
+  vec2 scale = vec2( length( modelMatrix[ 0 ].xyz ), length( modelMatrix[ 1 ].xyz ) );
   #ifndef USE_SIZEATTENUATION
     bool isPerspective = isPerspectiveMatrix( projectionMatrix );
     if ( isPerspective ) scale *= - mvPosition.z;

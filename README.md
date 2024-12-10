@@ -1,6 +1,6 @@
 # three-materials-compiled
 
-From [three.js](https://threejs.org/) version 0.164.1
+From [three.js](https://threejs.org/) version 0.171
 
 Are you tired of constantly searching the meanings of differents chunks in three.js shaders?  
 Here is the list of most materials. It provid the compliled shaders, pre-compiled shaders and the materials uniforms.
@@ -96,11 +96,6 @@ If you want to see them in a more interactive way, here is another project: [ycw
 If you need to recompile the materials, follow those steps:
 
 ```bash
-cd ./compiler
 npm install
 npm start
 ```
-
-Then navigate to http://localhost:5173/ and click on "LAUNCH COMPILATION"
-
-If you need to modify the source code, navigate to [./compiler/src](./compiler/src/) as [main.ts](./compiler/src/main.ts) is the entry point.

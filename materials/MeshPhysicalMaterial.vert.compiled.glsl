@@ -4,22 +4,22 @@
 #define varying out
 #define texture2D texture
 precision highp float;
-  precision highp int;
-  precision highp sampler2D;
-  precision highp samplerCube;
-  precision highp sampler3D;
-  precision highp sampler2DArray;
-  precision highp sampler2DShadow;
-  precision highp samplerCubeShadow;
-  precision highp sampler2DArrayShadow;
-  precision highp isampler2D;
-  precision highp isampler3D;
-  precision highp isamplerCube;
-  precision highp isampler2DArray;
-  precision highp usampler2D;
-  precision highp usampler3D;
-  precision highp usamplerCube;
-  precision highp usampler2DArray;
+precision highp int;
+precision highp sampler2D;
+precision highp samplerCube;
+precision highp sampler3D;
+precision highp sampler2DArray;
+precision highp sampler2DShadow;
+precision highp samplerCubeShadow;
+precision highp sampler2DArrayShadow;
+precision highp isampler2D;
+precision highp isampler3D;
+precision highp isamplerCube;
+precision highp isampler2DArray;
+precision highp usampler2D;
+precision highp usampler3D;
+precision highp usamplerCube;
+precision highp usampler2DArray;
   
 #define HIGH_PRECISION
 #define SHADER_TYPE MeshPhysicalMaterial
@@ -61,23 +61,6 @@ attribute vec2 uv;
   attribute vec4 color;
 #elif defined( USE_COLOR )
   attribute vec3 color;
-#endif
-#if ( defined( USE_MORPHTARGETS ) && ! defined( MORPHTARGETS_TEXTURE ) )
-  attribute vec3 morphTarget0;
-  attribute vec3 morphTarget1;
-  attribute vec3 morphTarget2;
-  attribute vec3 morphTarget3;
-  #ifdef USE_MORPHNORMALS
-    attribute vec3 morphNormal0;
-    attribute vec3 morphNormal1;
-    attribute vec3 morphNormal2;
-    attribute vec3 morphNormal3;
-  #else
-    attribute vec3 morphTarget4;
-    attribute vec3 morphTarget5;
-    attribute vec3 morphTarget6;
-    attribute vec3 morphTarget7;
-  #endif
 #endif
 #ifdef USE_SKINNING
   attribute vec4 skinIndex;
@@ -147,10 +130,6 @@ mat3 transposeMat3( const in mat3 m ) {
   tmp[ 2 ] = vec3( m[ 0 ].z, m[ 1 ].z, m[ 2 ].z );
   return tmp;
 }
-float luminance( const in vec3 rgb ) {
-  const vec3 weights = vec3( 0.2126729, 0.7151522, 0.0721750 );
-  return dot( weights, rgb );
-}
 bool isPerspectiveMatrix( mat4 m ) {
   return m[ 2 ][ 3 ] == - 1.0;
 }
@@ -175,8 +154,12 @@ float F_Schlick( const in float f0, const in float f90, const in float dotVH ) {
 
 // start <batching_pars_vertex> https://github.com/mrdoob/three.js/blob/master/src/renderers/shaders/ShaderChunk/batching_pars_vertex.glsl.js
 #ifdef USE_BATCHING
-  attribute float batchId;
+  #if ! defined( GL_ANGLE_multi_draw )
+  #define gl_DrawID _gl_DrawID
+  uniform int _gl_DrawID;
+  #endif
   uniform highp sampler2D batchingTexture;
+  uniform highp usampler2D batchingIdTexture;
   mat4 getBatchingMatrix( const in float i ) {
     int size = textureSize( batchingTexture, 0 ).x;
     int j = int( i ) * 4;
@@ -187,6 +170,22 @@ float F_Schlick( const in float f0, const in float f90, const in float dotVH ) {
     vec4 v3 = texelFetch( batchingTexture, ivec2( x + 2, y ), 0 );
     vec4 v4 = texelFetch( batchingTexture, ivec2( x + 3, y ), 0 );
     return mat4( v1, v2, v3, v4 );
+  }
+  float getIndirectIndex( const in int i ) {
+    int size = textureSize( batchingIdTexture, 0 ).x;
+    int x = i % size;
+    int y = i / size;
+    return float( texelFetch( batchingIdTexture, ivec2( x, y ), 0 ).r );
+  }
+#endif
+#ifdef USE_BATCHING_COLOR
+  uniform sampler2D batchingColorTexture;
+  vec3 getBatchingColor( const in float i ) {
+    int size = textureSize( batchingColorTexture, 0 ).x;
+    int j = int( i );
+    int x = j % size;
+    int y = j / size;
+    return texelFetch( batchingColorTexture, ivec2( x, y ), 0 ).rgb;
   }
 #endif
 // end <batching_pars_vertex>
@@ -303,7 +302,7 @@ float F_Schlick( const in float f0, const in float f90, const in float dotVH ) {
 // start <color_pars_vertex> https://github.com/mrdoob/three.js/blob/master/src/renderers/shaders/ShaderChunk/color_pars_vertex.glsl.js
 #if defined( USE_COLOR_ALPHA )
   varying vec4 vColor;
-#elif defined( USE_COLOR ) || defined( USE_INSTANCING_COLOR )
+#elif defined( USE_COLOR ) || defined( USE_INSTANCING_COLOR ) || defined( USE_BATCHING_COLOR )
   varying vec3 vColor;
 #endif
 // end <color_pars_vertex>
@@ -331,27 +330,17 @@ float F_Schlick( const in float f0, const in float f90, const in float dotVH ) {
 #ifdef USE_MORPHTARGETS
   #ifndef USE_INSTANCING_MORPH
     uniform float morphTargetBaseInfluence;
+    uniform float morphTargetInfluences[ MORPHTARGETS_COUNT ];
   #endif
-  #ifdef MORPHTARGETS_TEXTURE
-    #ifndef USE_INSTANCING_MORPH
-      uniform float morphTargetInfluences[ MORPHTARGETS_COUNT ];
-    #endif
-    uniform sampler2DArray morphTargetsTexture;
-    uniform ivec2 morphTargetsTextureSize;
-    vec4 getMorph( const in int vertexIndex, const in int morphTargetIndex, const in int offset ) {
-      int texelIndex = vertexIndex * MORPHTARGETS_TEXTURE_STRIDE + offset;
-      int y = texelIndex / morphTargetsTextureSize.x;
-      int x = texelIndex - y * morphTargetsTextureSize.x;
-      ivec3 morphUV = ivec3( x, y, morphTargetIndex );
-      return texelFetch( morphTargetsTexture, morphUV, 0 );
-    }
-  #else
-    #ifndef USE_MORPHNORMALS
-      uniform float morphTargetInfluences[ 8 ];
-    #else
-      uniform float morphTargetInfluences[ 4 ];
-    #endif
-  #endif
+  uniform sampler2DArray morphTargetsTexture;
+  uniform ivec2 morphTargetsTextureSize;
+  vec4 getMorph( const in int vertexIndex, const in int morphTargetIndex, const in int offset ) {
+    int texelIndex = vertexIndex * MORPHTARGETS_TEXTURE_STRIDE + offset;
+    int y = texelIndex / morphTargetsTextureSize.x;
+    int x = texelIndex - y * morphTargetsTextureSize.x;
+    ivec3 morphUV = ivec3( x, y, morphTargetIndex );
+    return texelFetch( morphTargetsTexture, morphUV, 0 );
+  }
 #endif
 // end <morphtarget_pars_vertex>
 
@@ -386,6 +375,7 @@ float F_Schlick( const in float f0, const in float f90, const in float dotVH ) {
     uniform mat4 directionalShadowMatrix[ 0 ];
     varying vec4 vDirectionalShadowCoord[ 0 ];
     struct DirectionalLightShadow {
+      float shadowIntensity;
       float shadowBias;
       float shadowNormalBias;
       float shadowRadius;
@@ -395,6 +385,7 @@ float F_Schlick( const in float f0, const in float f90, const in float dotVH ) {
   #endif
   #if 0 > 0
     struct SpotLightShadow {
+      float shadowIntensity;
       float shadowBias;
       float shadowNormalBias;
       float shadowRadius;
@@ -406,6 +397,7 @@ float F_Schlick( const in float f0, const in float f90, const in float dotVH ) {
     uniform mat4 pointShadowMatrix[ 0 ];
     varying vec4 vPointShadowCoord[ 0 ];
     struct PointLightShadow {
+      float shadowIntensity;
       float shadowBias;
       float shadowNormalBias;
       float shadowRadius;
@@ -514,7 +506,7 @@ void main() {
 // start <color_vertex> https://github.com/mrdoob/three.js/blob/master/src/renderers/shaders/ShaderChunk/color_vertex.glsl.js
 #if defined( USE_COLOR_ALPHA )
   vColor = vec4( 1.0 );
-#elif defined( USE_COLOR ) || defined( USE_INSTANCING_COLOR )
+#elif defined( USE_COLOR ) || defined( USE_INSTANCING_COLOR ) || defined( USE_BATCHING_COLOR )
   vColor = vec3( 1.0 );
 #endif
 #ifdef USE_COLOR
@@ -523,12 +515,16 @@ void main() {
 #ifdef USE_INSTANCING_COLOR
   vColor.xyz *= instanceColor.xyz;
 #endif
+#ifdef USE_BATCHING_COLOR
+  vec3 batchingColor = getBatchingColor( getIndirectIndex( gl_DrawID ) );
+  vColor.xyz *= batchingColor.xyz;
+#endif
 // end <color_vertex>
 
   
 // start <morphinstance_vertex> https://github.com/mrdoob/three.js/blob/master/src/renderers/shaders/ShaderChunk/morphinstance_vertex.glsl.js
 #ifdef USE_INSTANCING_MORPH
-  float morphTargetInfluences[MORPHTARGETS_COUNT];
+  float morphTargetInfluences[ MORPHTARGETS_COUNT ];
   float morphTargetBaseInfluence = texelFetch( morphTexture, ivec2( 0, gl_InstanceID ), 0 ).r;
   for ( int i = 0; i < MORPHTARGETS_COUNT; i ++ ) {
     morphTargetInfluences[i] =  texelFetch( morphTexture, ivec2( i + 1, gl_InstanceID ), 0 ).r;
@@ -538,7 +534,7 @@ void main() {
 
   
 // start <morphcolor_vertex> https://github.com/mrdoob/three.js/blob/master/src/renderers/shaders/ShaderChunk/morphcolor_vertex.glsl.js
-#if defined( USE_MORPHCOLORS ) && defined( MORPHTARGETS_TEXTURE )
+#if defined( USE_MORPHCOLORS )
   vColor *= morphTargetBaseInfluence;
   for ( int i = 0; i < MORPHTARGETS_COUNT; i ++ ) {
     #if defined( USE_COLOR_ALPHA )
@@ -553,7 +549,7 @@ void main() {
   
 // start <batching_vertex> https://github.com/mrdoob/three.js/blob/master/src/renderers/shaders/ShaderChunk/batching_vertex.glsl.js
 #ifdef USE_BATCHING
-  mat4 batchingMatrix = getBatchingMatrix( batchId );
+  mat4 batchingMatrix = getBatchingMatrix( getIndirectIndex( gl_DrawID ) );
 #endif
 // end <batching_vertex>
 
@@ -569,16 +565,9 @@ vec3 objectNormal = vec3( normal );
 // start <morphnormal_vertex> https://github.com/mrdoob/three.js/blob/master/src/renderers/shaders/ShaderChunk/morphnormal_vertex.glsl.js
 #ifdef USE_MORPHNORMALS
   objectNormal *= morphTargetBaseInfluence;
-  #ifdef MORPHTARGETS_TEXTURE
-    for ( int i = 0; i < MORPHTARGETS_COUNT; i ++ ) {
-      if ( morphTargetInfluences[ i ] != 0.0 ) objectNormal += getMorph( gl_VertexID, i, 1 ).xyz * morphTargetInfluences[ i ];
-    }
-  #else
-    objectNormal += morphNormal0 * morphTargetInfluences[ 0 ];
-    objectNormal += morphNormal1 * morphTargetInfluences[ 1 ];
-    objectNormal += morphNormal2 * morphTargetInfluences[ 2 ];
-    objectNormal += morphNormal3 * morphTargetInfluences[ 3 ];
-  #endif
+  for ( int i = 0; i < MORPHTARGETS_COUNT; i ++ ) {
+    if ( morphTargetInfluences[ i ] != 0.0 ) objectNormal += getMorph( gl_VertexID, i, 1 ).xyz * morphTargetInfluences[ i ];
+  }
 #endif
 // end <morphnormal_vertex>
 
@@ -665,22 +654,9 @@ vec3 transformed = vec3( position );
 // start <morphtarget_vertex> https://github.com/mrdoob/three.js/blob/master/src/renderers/shaders/ShaderChunk/morphtarget_vertex.glsl.js
 #ifdef USE_MORPHTARGETS
   transformed *= morphTargetBaseInfluence;
-  #ifdef MORPHTARGETS_TEXTURE
-    for ( int i = 0; i < MORPHTARGETS_COUNT; i ++ ) {
-      if ( morphTargetInfluences[ i ] != 0.0 ) transformed += getMorph( gl_VertexID, i, 0 ).xyz * morphTargetInfluences[ i ];
-    }
-  #else
-    transformed += morphTarget0 * morphTargetInfluences[ 0 ];
-    transformed += morphTarget1 * morphTargetInfluences[ 1 ];
-    transformed += morphTarget2 * morphTargetInfluences[ 2 ];
-    transformed += morphTarget3 * morphTargetInfluences[ 3 ];
-    #ifndef USE_MORPHNORMALS
-      transformed += morphTarget4 * morphTargetInfluences[ 4 ];
-      transformed += morphTarget5 * morphTargetInfluences[ 5 ];
-      transformed += morphTarget6 * morphTargetInfluences[ 6 ];
-      transformed += morphTarget7 * morphTargetInfluences[ 7 ];
-    #endif
-  #endif
+  for ( int i = 0; i < MORPHTARGETS_COUNT; i ++ ) {
+    if ( morphTargetInfluences[ i ] != 0.0 ) transformed += getMorph( gl_VertexID, i, 0 ).xyz * morphTargetInfluences[ i ];
+  }
 #endif
 // end <morphtarget_vertex>
 
