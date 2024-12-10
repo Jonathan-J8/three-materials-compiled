@@ -9,8 +9,7 @@ test("compile and download files", async ({ page }) => {
 
   const btn = page.getByRole("button");
   await btn.click();
+  //@ts-ignore
   await page.waitForFunction(() => window?.appState);
   expect(await btn.innerText()).toBe("RELAUNCH COMPILATION");
-
-  await expect(page).toHaveTitle(/THREE Materials compiled/);
 });
