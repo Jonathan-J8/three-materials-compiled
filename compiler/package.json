@@ -1,7 +1,7 @@
 {
   "name": "three-materials-compiled",
   "private": false,
-  "version": "1.0.0",
+  "version": "2.0.0",
   "type": "module",
   "author": "Jonathan (https://github.com/Jonathan-J8)",
   "homepage": "https://github.com/Jonathan-J8/three-materials-compiled/blob/main/README.md",
@@ -9,11 +9,9 @@
     "start": "vite dev"
   },
   "devDependencies": {
-    "@types/three": "^0.161.1",
+    "@types/node": "^22.10.1",
+    "@types/three": "latest",
     "typescript": "^5.2.2",
     "vite": "^5.0.8"
-  },
-  "dependencies": {
-    "three": "^0.164.1"
   }
 }

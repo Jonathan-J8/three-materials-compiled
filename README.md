@@ -101,5 +101,6 @@ npm install
 npm start
 ```
 
-Caution: It will automatically download all the shader codes for you in your default download folder.  
+Then navigate to http://localhost:5173/ and click on "LAUNCH COMPILATION"
+
 If you need to modify the source code, navigate to [./compiler/src](./compiler/src/) as [main.ts](./compiler/src/main.ts) is the entry point.

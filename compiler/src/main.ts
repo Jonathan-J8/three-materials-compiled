@@ -1,92 +1,71 @@
-import {
-  Line,
-  Mesh,
-  PerspectiveCamera,
-  PlaneGeometry,
-  Points,
-  RawShaderMaterial,
-  Scene,
-  Sprite,
-  WebGLRenderer,
-} from 'three';
+import THREE from "./three";
+import onBeforeCompile from "./onBeforeCompile";
+import onShaderError from "./onShaderError";
+import wait from "./wait";
 
-import {
-  LineBasicMaterial,
-  LineDashedMaterial,
-  MeshBasicMaterial,
-  MeshDepthMaterial,
-  MeshLambertMaterial,
-  MeshMatcapMaterial,
-  MeshNormalMaterial,
-  MeshPhongMaterial,
-  MeshPhysicalMaterial,
-  MeshStandardMaterial,
-  MeshToonMaterial,
-  PointsMaterial,
-  ShaderMaterial,
-  ShadowMaterial,
-  SpriteMaterial,
-} from 'three';
+window.h1Element.innerText = `Compiler ${__APP_VERSION__}`;
+window.h2Element.innerText = `THREE version ${THREE.REVISION}`;
+window.launchCompilation = async () => {
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera();
+  const geometry = new THREE.PlaneGeometry();
+  const renderer = new THREE.WebGLRenderer();
 
-import wait from './wait';
-import onShaderError from './onShaderError';
-import onBeforeCompile from './onBeforeCompile';
+  scene.add(camera);
 
-const canvas = document.createElement('canvas');
-const scene = new Scene();
-const camera = new PerspectiveCamera();
-const geometry = new PlaneGeometry();
-const renderer = new WebGLRenderer({ canvas });
+  const names = Object.keys(THREE.ShaderLib);
+  for (const name of names) {
+    let mesh: any, material: any;
+    const regex = new RegExp(`${name}material`, "i");
+    const materialName = Object.keys(THREE).find((name) => name.match(regex));
+    if (!materialName) continue;
+    try {
+      material = new THREE[materialName]();
+    } catch (e) {
+      console.error(e);
+      continue;
+    }
+    material.onBeforeCompile = onBeforeCompile;
 
-const meshes: Record<string, Mesh | Line | Points | Sprite> = {
-  // Material,
-  // MeshDistanceMaterial,
+    if (materialName.match(/points/i)) mesh = new THREE.Line(geometry, material);
+    else if (materialName.match(/line/i)) mesh = new THREE.Points(geometry, material);
+    else if (materialName.match(/sprite/i))
+      mesh = new THREE.Sprite(material as THREE.SpriteMaterial);
+    else mesh = new THREE.Mesh(geometry, material);
 
-  LineBasicMaterial: new Line(geometry, new LineBasicMaterial()),
-  LineDashedMaterial: new Line(geometry, new LineDashedMaterial()),
-  MeshBasicMaterial: new Mesh(geometry, new MeshBasicMaterial()),
-  MeshDepthMaterial: new Mesh(geometry, new MeshDepthMaterial()),
-  MeshLambertMaterial: new Mesh(geometry, new MeshLambertMaterial()),
-  MeshMatcapMaterial: new Mesh(geometry, new MeshMatcapMaterial()),
-  MeshNormalMaterial: new Mesh(geometry, new MeshNormalMaterial()),
-  MeshPhongMaterial: new Mesh(geometry, new MeshPhongMaterial()),
-  MeshPhysicalMaterial: new Mesh(geometry, new MeshPhysicalMaterial()),
-  MeshStandardMaterial: new Mesh(geometry, new MeshStandardMaterial()),
-  MeshToonMaterial: new Mesh(geometry, new MeshToonMaterial()),
-  PointsMaterial: new Points(geometry, new PointsMaterial()),
-  RawShaderMaterial: new Mesh(geometry, new RawShaderMaterial()),
-  ShaderMaterial: new Mesh(geometry, new ShaderMaterial()),
-  ShadowMaterial: new Mesh(geometry, new ShadowMaterial()),
-  SpriteMaterial: new Sprite(new SpriteMaterial()),
-};
-
-const main = async () => {
-  for (const shaderName in meshes) {
-    const mesh = meshes[shaderName];
-    if (Array.isArray(mesh.material)) continue;
+    scene.add(mesh);
+    renderer.debug.onShaderError = onShaderError(materialName);
+    renderer.render(scene, camera);
+    scene.clear();
+    material.dispose();
+    mesh = undefined;
+    material = undefined;
 
     // waiting here because the browser wont auto download to much files at a time
     await wait(500);
-    // downloads the uniforms and pre-compiled shaders
-    mesh.material.onBeforeCompile = onBeforeCompile;
-    // downloads the compiled shaders
-    renderer.debug.onShaderError = onShaderError(shaderName);
-
-    scene.add(mesh);
-    renderer.render(scene, camera);
-    scene.remove(mesh);
-
-    mesh.material.dispose();
   }
+  // for (const shaderName in meshes) {
+  //   const mesh = meshes[shaderName];
+  //   if (Array.isArray(mesh.material)) continue;
+
+  //   // downloads the uniforms and pre-compiled shaders
+  //   mesh.material.onBeforeCompile = onBeforeCompile;
+  //   // downloads the compiled shaders
+  //   renderer.debug.onShaderError = onShaderError(shaderName);
+
+  //   scene.add(mesh);
+  //   renderer.render(scene, camera);
+  //   scene.remove(mesh);
+
+  //   mesh.material.dispose();
+  // }
 
   geometry.dispose();
   scene.clear();
   camera.clear();
   renderer.dispose();
 
-  const p = document.createElement('p');
-  p.innerText = 'Process ended';
+  const p = document.createElement("p");
+  p.innerText = "Process ended";
   document.body.appendChild(p);
 };
-
-main();
