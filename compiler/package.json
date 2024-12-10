@@ -6,9 +6,11 @@
   "author": "Jonathan (https://github.com/Jonathan-J8)",
   "homepage": "https://github.com/Jonathan-J8/three-materials-compiled/blob/main/README.md",
   "scripts": {
-    "start": "vite dev"
+    "start": "vite dev",
+    "test": "npx playwright test"
   },
   "devDependencies": {
+    "@playwright/test": "^1.49.1",
     "@types/node": "^22.10.1",
     "@types/three": "latest",
     "typescript": "^5.2.2",

@@ -53,4 +53,6 @@ window.btnElement.onclick = async () => {
   renderer.dispose();
 
   window.btnElement.innerText = "RELAUNCH COMPILATION";
+  window.appState = "done";
+  return true;
 };
