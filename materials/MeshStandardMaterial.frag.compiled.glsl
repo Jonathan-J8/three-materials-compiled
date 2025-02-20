@@ -1215,21 +1215,17 @@ float computeSpecularOcclusion( const in float dotNV, const in float ambientOccl
       for ( int i = 0; i < 3; i ++ ) {
         vec3 transmissionRay = getVolumeTransmissionRay( n, v, thickness, iors[ i ], modelMatrix );
         vec3 refractedRayExit = position + transmissionRay;
-    
         vec4 ndcPos = projMatrix * viewMatrix * vec4( refractedRayExit, 1.0 );
         vec2 refractionCoords = ndcPos.xy / ndcPos.w;
         refractionCoords += 1.0;
         refractionCoords /= 2.0;
-    
         vec4 transmissionSample = getTransmissionSample( refractionCoords, roughness, iors[ i ] );
         transmittedLight[ i ] = transmissionSample[ i ];
         transmittedLight.a += transmissionSample.a;
         transmittance[ i ] = diffuseColor[ i ] * volumeAttenuation( length( transmissionRay ), attenuationColor, attenuationDistance )[ i ];
       }
       transmittedLight.a /= 3.0;
-    
     #else
-    
       vec3 transmissionRay = getVolumeTransmissionRay( n, v, thickness, ior, modelMatrix );
       vec3 refractedRayExit = position + transmissionRay;
       vec4 ndcPos = projMatrix * viewMatrix * vec4( refractedRayExit, 1.0 );
@@ -1238,7 +1234,6 @@ float computeSpecularOcclusion( const in float dotNV, const in float ambientOccl
       refractionCoords /= 2.0;
       transmittedLight = getTransmissionSample( refractionCoords, roughness, ior );
       transmittance = diffuseColor * volumeAttenuation( length( transmissionRay ), attenuationColor, attenuationDistance );
-    
     #endif
     vec3 attenuatedColor = transmittance * transmittedLight.rgb;
     vec3 F = EnvironmentBRDF( n, v, specularColor, specularF90, roughness );
